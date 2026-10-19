@@ -5,7 +5,7 @@ import openpyxl
 import pandas as pd
 import streamlit as st
 
-st.title("室温データ抽出・複数ファイル集計ツール（AR列まで）")
+st.title("室温データ抽出・集計ツール")
 
 # 1. 複数ファイルのドラッグ＆ドロップ（アップロード）
 uploaded_files = st.file_uploader(
@@ -134,7 +134,7 @@ if uploaded_files:
 
     if sorted_rooms:
       target_col = st.selectbox(
-          "抽出したい部屋・項目を選択してください (AR列まで):", sorted_rooms
+          "抽出したい部屋を選んでください:", sorted_rooms
       )
 
       if target_col:
