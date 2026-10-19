@@ -14,7 +14,7 @@ uploaded_file = st.file_uploader(
 if uploaded_file is not None:
     try:
         # ファイル形式に応じて読み込み
-        if uploaded_file.name.endswith(".csv"):
+        if uploaded_file.name.lower().endswith(".csv"):
             try:
                 df_acc = pd.read_csv(uploaded_file, encoding="utf-8")
             except UnicodeDecodeError:
