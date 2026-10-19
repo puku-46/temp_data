@@ -99,11 +99,20 @@ if uploaded_file is not None:
         # 3. データの抽出（日付、時刻、指定された列）
         extracted_data = []
         for _, row in df_acc.iterrows():
-          time_val = str(row.iloc[1]).strip() if len(row) > 1 else ""
+          # 行の中から「〇〇時」という文字列が含まれているセルを探す（列位置に依存しない安全な方法）
+          time_val = ""
+          for val_cell in row:
+            v_str = str(val_cell).strip()
+            if "時" in v_str and ("08" in v_str or "8" in v_str or "17" in v_str or "00" in v_str or "01" in v_str):
+              time_val = v_str
+              break
+          
+          # もしくは2番目のセル（時刻列）を直接確認
+          if not time_val and len(row) > 2:
+            time_val = str(row.iloc[2]).strip()
 
-          # 時刻の判定（「8」または「17」が含まれている行を確実にキャッチ）
+          # 時刻の判定
           time_key = None
-          # 前後の空白や余計な文字を除去してチェック
           t_clean = time_val.replace(" ", "").replace(" ", "")
 
           if "08" in t_clean or "8時" in t_clean or t_clean == "8":
@@ -112,7 +121,7 @@ if uploaded_file is not None:
             time_key = "17時"
           else:
             continue
-              
+
           file_val = str(row.iloc[0]).strip()
           val = row[target_col]
 
