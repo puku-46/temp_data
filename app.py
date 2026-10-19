@@ -96,28 +96,16 @@ if uploaded_file is not None:
       target_col = st.selectbox("抽出したい部屋・項目を選択してください:", room_columns)
 
       if target_col:
-        # 3. データの抽出（日付、時刻、指定された列）
+        # 3. データの抽出（時刻列：インデックス2を正確にチェック）
         extracted_data = []
         for _, row in df_acc.iterrows():
-          # 行の中から「〇〇時」という文字列が含まれているセルを探す（列位置に依存しない安全な方法）
-          time_val = ""
-          for val_cell in row:
-            v_str = str(val_cell).strip()
-            if "時" in v_str and ("08" in v_str or "8" in v_str or "17" in v_str or "00" in v_str or "01" in v_str):
-              time_val = v_str
-              break
-          
-          # もしくは2番目のセル（時刻列）を直接確認
-          if not time_val and len(row) > 2:
-            time_val = str(row.iloc[2]).strip()
+          time_val = str(row.iloc[2]).strip() if len(row) > 2 else ""
 
-          # 時刻の判定
+          # 時刻の判定（8時系、17時系を厳密に判定）
           time_key = None
-          t_clean = time_val.replace(" ", "").replace(" ", "")
-
-          if "08" in t_clean or "8時" in t_clean or t_clean == "8":
+          if time_val in ["08時", "8時", "08:00", "8:00"]:
             time_key = "8時"
-          elif "17" in t_clean or "17時" in t_clean:
+          elif time_val in ["17時", "17:00"]:
             time_key = "17時"
           else:
             continue
@@ -131,6 +119,9 @@ if uploaded_file is not None:
 
         # 4. ピボット展開とレイアウト組み立て
         if not df_extracted.empty:
+          # 重複がある場合は最初の値を使うなどの安全策
+          df_extracted = df_extracted.drop_duplicates(subset=["日付", "時刻"])
+          
           df_pivot = df_extracted.pivot(
               index="日付", columns="時刻", values="温度"
           )
