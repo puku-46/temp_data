@@ -9,7 +9,7 @@ st.title("室温データ抽出・集計ツール")
 
 # 1. 複数ファイルのドラッグ＆ドロップ（アップロード）
 uploaded_files = st.file_uploader(
-    "ACC.xlsx または 複数の室温データCSVファイルをまとめてドラッグ＆ドロップしてください",
+    "単日 または 複数日の室温データCSVファイルをまとめてドラッグ＆ドロップしてください",
     type=["xlsx", "xls", "csv", "CSV"],
     accept_multiple_files=True,
 )
