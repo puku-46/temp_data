@@ -101,17 +101,18 @@ if uploaded_file is not None:
         for _, row in df_acc.iterrows():
           time_val = str(row.iloc[1]).strip() if len(row) > 1 else ""
 
-          # 時刻の判定（「8時」「08時」「8:00」などを柔軟にキャッチ）
+          # 時刻の判定（「8」または「17」が含まれている行を確実にキャッチ）
           time_key = None
-          if any(
-              t in time_val for t in ["8時", "08時", "8:00", "08:00", "8時00"]
-          ):
+          # 前後の空白や余計な文字を除去してチェック
+          t_clean = time_val.replace(" ", "").replace(" ", "")
+
+          if "08" in t_clean or "8時" in t_clean or t_clean == "8":
             time_key = "8時"
-          elif any(t in time_val for t in ["17時", "17:00", "17時00"]):
+          elif "17" in t_clean or "17時" in t_clean:
             time_key = "17時"
           else:
             continue
-
+              
           file_val = str(row.iloc[0]).strip()
           val = row[target_col]
 
