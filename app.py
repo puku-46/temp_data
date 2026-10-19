@@ -7,18 +7,31 @@ st.title("室温データ抽出・集計ツール")
 
 # 1. ファイルのドラッグ＆ドロップ（アップロード）
 uploaded_file = st.file_uploader(
-    "ACC.xlsx（または集計対象のExcel/CSVファイル）をドラッグ＆ドロップしてください",
-    type=["xlsx", "xls", "csv"],
+    "ACC.xlsx または 室温データのCSVファイルをドラッグ＆ドロップしてください",
+    type=["xlsx", "xls", "csv", "CSV"],
 )
 
 if uploaded_file is not None:
     try:
-        # ファイル形式に応じて読み込み
+        # ファイル形式と文字コードの判定処理
         if uploaded_file.name.lower().endswith(".csv"):
-            try:
-                df_acc = pd.read_csv(uploaded_file, encoding="utf-8")
-            except UnicodeDecodeError:
-                df_acc = pd.read_csv(uploaded_file, encoding="cp932")
+            df_acc = None
+            encodings = ["utf-8-sig", "cp932", "shift_jis"]
+
+            # アップロードされたファイルのバイトデータを一時保存
+            file_bytes = uploaded_file.getvalue()
+
+            for enc in encodings:
+                try:
+                    df_acc = pd.read_csv(io.BytesIO(file_bytes), encoding=enc)
+                    break
+                except UnicodeDecodeError:
+                    continue
+
+            if df_acc is None:
+                df_acc = pd.read_csv(
+                    io.BytesIO(file_bytes), encoding="cp932", errors="replace"
+                )
         else:
             df_acc = pd.read_excel(uploaded_file, header=0)
 
