@@ -17,21 +17,53 @@ if uploaded_file is not None:
         if uploaded_file.name.lower().endswith(".csv"):
             df_acc = None
             encodings = ["utf-8-sig", "cp932", "shift_jis"]
-
-            # アップロードされたファイルのバイトデータを一時保存
             file_bytes = uploaded_file.getvalue()
 
             for enc in encodings:
                 try:
-                    df_acc = pd.read_csv(io.BytesIO(file_bytes), encoding=enc)
+                    df_acc = pd.read_csv(io.BytesIO(file_bytes), encoding=enc, header=None)
                     break
                 except UnicodeDecodeError:
                     continue
 
             if df_acc is None:
                 df_acc = pd.read_csv(
-                    io.BytesIO(file_bytes), encoding="cp932", errors="replace"
+                    io.BytesIO(file_bytes), encoding="cp932", errors="replace", header=None
                 )
+            
+            # ヘッダー情報の構築（元プログラムのロジックに合わせる）
+            raw_rows = df_acc.values.tolist()
+            if len(raw_rows) > 4:
+                row2 = raw_rows[2] if len(raw_rows) > 2 else []
+                row3 = raw_rows[3] if len(raw_rows) > 3 else []
+                row4 = raw_rows[4] if len(raw_rows) > 4 else []
+
+                curr_floor = ""
+                curr_loc = ""
+                col_names = []
+
+                max_len = max(len(row2), len(row3), len(row4))
+                for idx in range(max_len):
+                    f_val = str(row2[idx]).strip() if idx < len(row2) and pd.notna(row2[idx]) else ""
+                    if f_val:
+                        curr_floor = f_val
+                    l_val = str(row3[idx]).strip() if idx < len(row3) and pd.notna(row3[idx]) else ""
+                    if l_val:
+                        curr_loc = l_val
+                    r_val = str(row4[idx]).strip() if idx < len(row4) and pd.notna(row4[idx]) else ""
+                    
+                    parts = [p for p in [curr_floor, curr_loc, r_val] if p]
+                    col_names.append("_".join(parts) if parts else f"Col_{idx}")
+
+                data_rows = raw_rows[6:]
+                df_acc = pd.DataFrame(data_rows)
+                if len(col_names) < len(df_acc.columns):
+                    col_names += [f"Col_{i}" for i in range(len(col_names), len(df_acc.columns))]
+                df_acc.columns = col_names[:len(df_acc.columns)]
+                
+                # ファイル名の抽出（拡張子除く）
+                file_name_clean = uploaded_file.name.replace('.CSV', '').replace('.csv', '')
+                df_acc.insert(0, 'ファイル名', file_name_clean)
         else:
             df_acc = pd.read_excel(uploaded_file, header=0)
 
@@ -46,21 +78,26 @@ if uploaded_file is not None:
             if target_col:
                 # 3. データの抽出（日付、時刻、指定された列）
                 extracted_data = []
+                
+                # CSVとExcelでデータ構造が異なる場合の考慮
                 for _, row in df_acc.iterrows():
-                    file_name = str(row.iloc[0]).strip()
-                    time_val = str(row.iloc[1]).strip()
-                    val = row[target_col]
+                    # 2列目（インデックス1または2）が時刻
+                    time_val = str(row.iloc[1]).strip() if len(row) > 1 else ""
 
-                    # 時刻の判定
-                    if time_val in ["8時", "08時", "8:00", "08:00"]:
-                        time_key = "8時"
-                    elif time_val in ["17時", "17:00"]:
-                        time_key = "17時"
+                    # 時刻の判定（「8時」「08時」「8:00」などを柔軟にキャッチ）
+                    time_key = None
+                    if any(t in time_val for t in ['8時', '08時', '8:00', '08:00', '8時00']):
+                        time_key = '8時'
+                    elif any(t in time_val for t in ['17時', '17:00', '17時00']):
+                        time_key = '17時'
                     else:
                         continue
 
+                    file_val = str(row.iloc[0]).strip()
+                    val = row[target_col]
+
                     extracted_data.append(
-                        {"日付": file_name, "時刻": time_key, "温度": val}
+                        {"日付": file_val, "時刻": time_key, "温度": val}
                     )
 
                 df_extracted = pd.DataFrame(extracted_data)
